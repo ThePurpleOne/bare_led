@@ -10,6 +10,7 @@ date: 19/01/23
 	- [The Processor](#the-processor)
 	- [LED circuit](#led-circuit)
 - [Software](#software)
+	- [Configure target architecture](#configure-target-architecture)
 - [Sources](#sources)
 - [Images](#images)
 
@@ -77,15 +78,35 @@ $$
 
 The software part is done on a host computer with [Rust installed](https://www.rust-lang.org/tools/install).
 
-1. 
+We want to compile code for a specific **architecture**, this mean we'll need to **cross-compile** the code because the architecture of our PC is different from the one on the PI. We also want to use it **Bare Metal** which means we don't want it to run on an existing Operating System so we can't use existing OS' libraries.
+
+For that we'll need need to specify the target architecture in a config file of cargo (Cargo is our build system). 
+
+## Configure target architecture
+
+Create .cargo directory:
+```bash
+mkdir .cargo
+``` 
+
+and create a file in the directory called `config` with:
+```toml
+[build]
+target = "armv7a-none-eabi" 
+```
+
+- `armv7a` : The architecture of the processor
+- `none` : This means we're not using any underlying Operating system
+- `eabi` : Means we're using the extended [ABI](https://fr.wikipedia.org/wiki/Application_binary_interface#:~:text=En%20informatique%2C%20une%20Application%20Binary,diff%C3%A9rentes%20parties%20d'une%20application.)
+
+
+
+
 # Sources
 
-[BAREMETAL RUST Runs on EVERYTHING, Including the Raspberry Pi](https://www.youtube.com/watch?v=jZT8APrzvc4)
-
-[BCM2835-ARM-Peripherals.pdf](https://www.raspberrypi.org/app/uploads/2012/02/BCM2835-ARM-Peripherals.pdf)
-
+[BAREMETAL RUST Runs on EVERYTHING, Including the Raspberry Pi](https://www.youtube.com/watch?v=jZT8APrzvc4)  
+[BCM2835-ARM-Peripherals.pdf](https://www.raspberrypi.org/app/uploads/2012/02/BCM2835-ARM-Peripherals.pdf)  
 [https://www.rust-lang.org](https://www.rust-lang.org)
-
 
 
 # Images
