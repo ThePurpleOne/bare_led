@@ -13,6 +13,8 @@ date: 19/01/23
 	- [Configure target architecture](#configure-target-architecture)
 	- [Change the main](#change-the-main)
 	- [Compile](#compile)
+	- [Ouput binary](#ouput-binary)
+	- [Linker script](#linker-script)
 - [Sources](#sources)
 - [Images](#images)
 
@@ -148,9 +150,10 @@ cargo build --release
 ```
 
 
+## Ouput binary
 We can see the output executable in the Executable and Linkable (ELF) format:
 ```c
-readelf.exe -a .\target\armv7a-none-eabi\release\led
+readelf -a .\target\armv7a-none-eabi\release\led
 ELF Header:
   Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00 
   Class:                             ELF32
@@ -193,8 +196,109 @@ File Attributes
   Tag_ABI_FP_16bit_format: IEEE 754
 ```
 
+We could dump the binary to see the memory layout but we need an arm toolchain to do that:
+```bash
+sudo apt install gcc-arm-none-eabi
+```
+
+We can now dump the binary:
+```bash
+arm- -D .\target\armv7a-none-eabi\release\led
+```
+
+We can see the memory layout:
+```c
+target/armv7a-none-eabi/release/led:     file format elf32-littlearm
 
 
+Disassembly of section .ARM.exidx:
+
+000100d4 <.ARM.exidx>:
+   100d4:       00010010        andeq   r0, r1, r0, lsl r0
+   100d8:       00000001        andeq   r0, r0, r1
+   100dc:       0001000c        andeq   r0, r1, ip
+   100e0:       00000001        andeq   r0, r0, r1
+
+Disassembly of section .text:
+
+000200e4 <_start>:
+   200e4:       eafffffe        b       200e4 <_start>
+
+Disassembly of section .ARM.attributes:
+
+00000000 <.ARM.attributes>:
+   0:   00003341        andeq   r3, r0, r1, asr #6
+   4:   61656100        cmnvs   r5, r0, lsl #2
+   8:   01006962        tsteq   r0, r2, ror #18
+   c:   00000029        andeq   r0, r0, r9, lsr #32
+  10:   302e3243        eorcc   r3, lr, r3, asr #4
+  14:   0a060039        beq     180100 <_start+0x16001c>
+  18:   01084107        tsteq   r8, r7, lsl #2
+  1c:   030a0209        movweq  r0, #41481      ; 0xa209
+  20:   0111000e        tsteq   r1, lr
+  24:   00150114        andseq  r0, r5, r4, lsl r1
+  28:   01180317        tsteq   r8, r7, lsl r3
+  2c:   021e0119        andseq  r0, lr, #1073741830     ; 0x40000006
+  30:   01260022                        ; <UNDEFINED> instruction: 0x01260022
+
+Disassembly of section .comment:
+
+00000000 <.comment>:
+   0:   6b6e694c        blvs    1b9a538 <_start+0x1b7a454>
+   4:   203a7265        eorscs  r7, sl, r5, ror #4
+   8:   20444c4c        subcs   r4, r4, ip, asr #24
+   c:   302e3531        eorcc   r3, lr, r1, lsr r5
+  10:   Address 0x0000000000000010 is out of bounds.
+```
+
+## Linker script
+The thing is that we need to have the `<_start>` at the beginning of the binary AND we need it to be at address 0x8000 because it's where the Raspi bootloader will loads the binary.
+
+To achieve that we need to create a linker script that will describe the memory layout of our binary ([Source](https://github.com/lowlevellearning/raspberry-pi-baremetal-c/blob/master/linker.ld)).
+```c
+ENTRY(_start)
+ 
+SECTIONS
+{
+    . = 0x8000;
+    .text :
+    {
+        *(.text.__start)
+        *(.text)
+    }
+    . = ALIGN(4096);
+    .rodata :
+    {
+        *(.rodata)
+    }
+    . = ALIGN(4096);
+    .data :
+    {
+        *(.data)
+    }
+    . = ALIGN(4096);
+    __bss_start = .;
+    .bss :
+    {
+        bss = .;
+        *(.bss)
+    }
+    . = ALIGN(4096); 
+    __bss_end = .;
+    __bss_size = __bss_end - __bss_start;
+    __end = .;
+}
+```
+
+We can now compile our binary with the linker script:
+```bash
+cargo rustc --release -- -C link-arg=-Tlinker.ld
+```
+
+We can now dump the binary:
+```bash
+arm-none-eabi-objdump -D .\target\armv7a-none-eabi\release\led
+```
 
 # Sources
 
