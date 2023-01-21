@@ -203,10 +203,10 @@ sudo apt install gcc-arm-none-eabi
 
 We can now dump the binary:
 ```bash
-arm- -D .\target\armv7a-none-eabi\release\led
+arm-none-eabi-objdump -D .\target\armv7a-none-eabi\release\led
 ```
 
-We can see the memory layout:
+We can see the **memory layout**:
 ```c
 target/armv7a-none-eabi/release/led:     file format elf32-littlearm
 
@@ -290,9 +290,17 @@ SECTIONS
 }
 ```
 
+We also need to add some **global assembly** in the main to tell the linker to put the start first:
+```rust
+mod boot{
+	use core::arch::global_asm;
+	global_asm!(".section .text.__start");
+}
+```
+
 We can now compile our binary with the linker script:
 ```bash
-cargo rustc --release -- -C link-arg=-Tlinker.ld
+cargo rustc --release -- -C link-arg=--script=./linker.ld
 ```
 
 We can now dump the binary:
