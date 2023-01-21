@@ -1,2 +1,4 @@
 [build]
 target = "armv7a-none-eabi"
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+rustflags = ["-C", "link-arg=-Tlinker.ld",]

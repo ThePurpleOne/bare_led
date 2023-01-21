@@ -1,11 +1,12 @@
 ENTRY(_start)
- 
+PROVIDE(__start = 0x8000);
+
 SECTIONS
 {
     . = 0x8000;
-    .text :
+	.text :
     {
-        *(.text.__start)
+        *(.text._start)
         *(.text)
     }
     . = ALIGN(4096);
