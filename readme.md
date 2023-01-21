@@ -11,6 +11,8 @@ date: 19/01/23
 	- [LED circuit](#led-circuit)
 - [Software](#software)
 	- [Configure target architecture](#configure-target-architecture)
+	- [Change the main](#change-the-main)
+	- [Compile](#compile)
 - [Sources](#sources)
 - [Images](#images)
 
@@ -59,10 +61,12 @@ The datasheet : [BCM2835-ARM-Peripherals.pdf](https://www.raspberrypi.org/app/up
 We'll be attaching a random LED in series with a resistor to a Raspberry GPIO.
 
 
-We can seach for the 40 pins pinout of the raspberry or we can use mine:
+We can seach for the 40 pins pinout of the raspberry:
 
 ![docs/images/raspberry_pinout_LR.svg](docs/images/raspberry_pinout_LR.svg)
 
+
+[Interactive Pinout](https://pinout.xyz/)
 
 I'm gonna use the `GPIO 14` on `PIN 8` and `GPIO 1` for ``3.3v` because i want to. Here is a schematics of the small circuit we'll be using:
 
@@ -89,7 +93,7 @@ Create .cargo directory:
 mkdir .cargo
 ``` 
 
-and create a file in the directory called `config` with:
+and create a file  `.cargo/config` with:
 ```toml
 [build]
 target = "armv7a-none-eabi" 
@@ -100,7 +104,43 @@ target = "armv7a-none-eabi"
 - `eabi` : Means we're using the extended [ABI](https://fr.wikipedia.org/wiki/Application_binary_interface#:~:text=En%20informatique%2C%20une%20Application%20Binary,diff%C3%A9rentes%20parties%20d'une%20application.)
 
 
+## Change the main
+The current main uses the `std` library which is not available for our target architecture. We'll need to change it.
 
+Tell the compiler to only use bare metal code and tell it we're gonna take care of the entry point:
+```rust
+#![no_std]
+#![no_main]
+```
+
+We'll need to define the entry point of our program:
+```rust
+#[no_mangle]
+pub extern "C" fn _start() -> ! 
+{
+	loop {}
+}
+```
+
+- `#[no_mangle]` : Tells the compiler to avoid name mangling (don't change the name of the function)
+- `-> !` : Tells the compiler that the function never returns
+- `extern "C"` : Exposes to the linker
+
+
+If the processor crashes, it needs to know what to do. We'll need to define a panic handler:
+```rust
+use core::panic::PanicInfo;
+#[panic_handler]
+fn panic(_info: &PanicInfo) -> ! {
+	loop {}
+}
+```
+
+## Compile
+We can now compile the code:
+```bash
+cargo build --release
+```
 
 # Sources
 
