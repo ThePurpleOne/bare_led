@@ -14,8 +14,21 @@ date: 19/01/23
 	- [Change the main](#change-the-main)
 	- [Compile](#compile)
 	- [Ouput binary](#ouput-binary)
+		- [ELF format](#elf-format)
+		- [Installing arm-none-eabi toolchain](#installing-arm-none-eabi-toolchain)
+		- [Dumping the binary](#dumping-the-binary)
 	- [Linker script](#linker-script)
 	- [Compiling with linker script](#compiling-with-linker-script)
+	- [Flattening the binary](#flattening-the-binary)
+	- [Loading the binary into SD card](#loading-the-binary-into-sd-card)
+- [LED blinking](#led-blinking)
+	- [GPIO](#gpio)
+		- [Addresses](#addresses)
+		- [GPIO Addresses](#gpio-addresses)
+		- [GPIO Function Select](#gpio-function-select)
+		- [GPIO Set and Clear](#gpio-set-and-clear)
+		- [Rust Code to blink the LED](#rust-code-to-blink-the-led)
+- [Let's see the light!](#lets-see-the-light)
 - [Sources](#sources)
 - [Images](#images)
 
@@ -152,6 +165,8 @@ cargo build --release
 
 
 ## Ouput binary
+
+### ELF format
 We can see the output executable in the Executable and Linkable (ELF) format:
 ```c
 readelf -a .\target\armv7a-none-eabi\release\led
@@ -197,11 +212,17 @@ File Attributes
   Tag_ABI_FP_16bit_format: IEEE 754
 ```
 
+### Installing arm-none-eabi toolchain
 We could dump the binary to see the memory layout but we need an arm toolchain to do that:
 ```bash
 sudo apt install gcc-arm-none-eabi
 ```
 
+or 
+
+[Install from here](https://mynewt.apache.org/latest/get_started/native_install/cross_tools.html#installing-the-arm-cross-toolchain)
+
+### Dumping the binary
 We can now dump the binary:
 ```bash
 arm-none-eabi-objdump -D .\target\armv7a-none-eabi\release\led
@@ -340,6 +361,112 @@ Disassembly of section .ARM.attributes:
 Disassembly of section .comment:
 [ ... ]
 ```
+
+## Flattening the binary
+The current binary is in ELF format and we need to flatten it to a raw binary. We can do that with `objcopy` (Included in the `arm-none-eabi` toolchain talked about earlier):
+```bash
+arm-none-eabi-objcopy -O binary .\target\armv7a-none-eabi\release\led ./image.bin
+```
+
+## Loading the binary into SD card
+We need to download some files:
+[Raspi Repo with necessary files](https://github.com/raspberrypi/firmware/tree/master/boot)
+
+We need to download and copy the necessary files into the SD:
+- `bootcode.bin`
+- `fixup.dat`
+- `start.elf`
+
+Then add a new ``config.txt`` file with the following content:
+```bash
+arm_64bit=0
+```
+
+We can now copy our binary into the SD card:
+```bash
+cp ./image.bin /Volumes/boot/
+```
+
+And the SD card is ready to be plugged in the Raspi.
+
+
+# LED blinking
+Now that we have a binary that can be loaded by the Raspi bootloader, we can start writing some code.
+
+## GPIO
+We want to blink an LED so we need to control the GPIO. The GPIO is controlled by setting some values to addresses in the processor memory. For that we'll need to look at the [BCM2835 Datasheet - ARM Peripherals](https://www.raspberrypi.org/app/uploads/2012/02/BCM2835-ARM-Peripherals.pdf) documentation.
+
+
+GPIO Section is at page 89 : `6. General Purpose I/O (GPIO)`
+
+We've chosen GPIO 14 (Pin 8) and we need to:
+- Set the GPIO Function Select 1 to output
+- Set the GPIO On and Off
+
+### Addresses
+The peripheral addresses are not directly accessed through memory addresses, but are mapped through some stuff, this is why the datasheet says:
+
+> Physical addresses range from 0x20000000 to 0x20FFFFFF for peripherals. The bus addresses for peripherals are set up to map onto the peripheral bus address range starting at 0x7E000000. Thus a peripheral advertised here at bus address 0x7Ennnnnn is available at physical address 0x20nnnnnn.
+
+This means that each time the datasheet says `0x7Ennnnnn` we need to set `0x20nnnnnn` as the actual address.
+
+### GPIO Addresses
+These are the 3 addresses we'l need to use:
+![GPIO](docs/images/datasheet_addr.png)
+
+Converted:
+- `0x2020 0000`: GPIO Function Select 0
+- `0x2020 001C`: GPIO Set 0
+- `0x2020 0028`: GPIO Clear 0
+
+### GPIO Function Select
+![Fsel](docs/images/datasheet_fsel.png)
+
+The GPIO Function Select needs to be set to `001` to set the GPIO as output. We can do that by setting the 3 bits `24 to 26` to `001`:
+
+### GPIO Set and Clear
+In order to set and clear the GPIO we need to set the bit corresponding to the GPIO we want to set/clear. For GPIO 14 (Pin 8) we need to set the bit `8` to `1` in the GPIO Set and Clear registers.
+
+![Set](docs/images/datasheet_set.png)
+![Clear](docs/images/datasheet_clear.png)
+
+### Rust Code to blink the LED
+```rust
+unsafe
+{
+	// Set GPIO 14 (PIN 8) as output
+	core::ptr::write_volatile(0x20200000 as *mut u32, 0b001 << 24);
+
+	loop 
+	{
+		// Set GPIO 14 (PIN 8) to HIGH
+		core::ptr::write_volatile(0x2020001C as *mut u32, 1 << 8);
+
+		// Wait
+		for _ in 0..1000000 {}
+
+		// Set GPIO 14 (PIN 8) to LOW
+		core::ptr::write_volatile(0x20200028 as *mut u32, 1 << 8);
+
+		// Wait
+		for _ in 0..1000000 {}
+	}
+}
+
+```
+
+
+
+# Let's see the light!
+We need to:
+- Setup the LED circuit
+- Compile into ELF
+- Flatten the binary
+- push it to an SD card
+- Boot the Raspi
+- Enjoy
+
+
 
 
 # Sources
