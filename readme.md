@@ -290,11 +290,13 @@ SECTIONS
 }
 ```
 
-We also need to add some **global assembly** in the main to tell the linker to put the start first:
+We also need to add something on the start to tell the linker to use this to put __start at the beginning of the binary:
 ```rust
-mod boot{
-	use core::arch::global_asm;
-	global_asm!(".section .text.__start");
+#[no_mangle]
+#[link_section = ".text._start"]
+pub extern "C" fn _start() -> ! 
+{
+	loop {}
 }
 ```
 
