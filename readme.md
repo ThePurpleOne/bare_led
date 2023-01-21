@@ -5,16 +5,17 @@ date: 19/01/23
 ---
 
 - [Rust bare metal LED driver\*\*](#rust-bare-metal-led-driver)
-- [Hardware](#hardware)
+- [Hardware setup](#hardware-setup)
 	- [The board](#the-board)
 	- [The Processor](#the-processor)
 	- [LED circuit](#led-circuit)
-- [Software](#software)
+- [Workflow setup](#workflow-setup)
 	- [Configure target architecture](#configure-target-architecture)
 	- [Change the main](#change-the-main)
 	- [Compile](#compile)
 	- [Ouput binary](#ouput-binary)
 	- [Linker script](#linker-script)
+	- [Compiling with linker script](#compiling-with-linker-script)
 - [Sources](#sources)
 - [Images](#images)
 
@@ -22,7 +23,7 @@ date: 19/01/23
 # Rust bare metal LED driver**
 I want to code, compile, and run bare metal code on a raspberry Pi in Rust and blink an LED.
 
-# Hardware
+# Hardware setup
 ## The board
 I'll be using a `Raspberry PI Zero W Rev 1.1`.
 
@@ -80,7 +81,7 @@ $$
 led\_current = 3.3 - 2 / 220 = 1.3 / 220 ~= 6 mA
 $$
 
-# Software
+# Workflow setup
 
 The software part is done on a host computer with [Rust installed](https://www.rust-lang.org/tools/install).
 
@@ -255,16 +256,15 @@ Disassembly of section .comment:
 The thing is that we need to have the `<_start>` at the beginning of the binary AND we need it to be at address 0x8000 because it's where the Raspi bootloader will loads the binary.
 
 To achieve that we need to create a linker script that will describe the memory layout of our binary ([Source](https://github.com/lowlevellearning/raspberry-pi-baremetal-c/blob/master/linker.ld)).
-```c
-ENTRY(_start)
- 
+```cENTRY(_start)
+
 SECTIONS
 {
     . = 0x8000;
     .text :
     {
-        *(.text.__start)
-        *(.text)
+        *(.text._start)
+        *(.text*)
     }
     . = ALIGN(4096);
     .rodata :
@@ -283,7 +283,12 @@ SECTIONS
         bss = .;
         *(.bss)
     }
-    . = ALIGN(4096); 
+    .ARM.exidx :
+    {
+        *(.ARM.exidx*)
+    }
+
+    . = ALIGN(4096);
     __bss_end = .;
     __bss_size = __bss_end - __bss_start;
     __end = .;
@@ -300,15 +305,42 @@ pub extern "C" fn _start() -> !
 }
 ```
 
-We can now compile our binary with the linker script:
+## Compiling with linker script
+We'll have to add the linker script as argument to rustc by adding this to our `.cargo/config`:
 ```bash
-cargo rustc --release -- -C link-arg=--script=./linker.ld
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+rustflags = ["-C", "link-arg=-Tlinker.ld",]
 ```
 
-We can now dump the binary:
+We can now compile our binary with the linker script:
+```bash
+cargo rustc --release
+```
+
+We should now be able to dump the binary and see the start first @`0x8000`:
 ```bash
 arm-none-eabi-objdump -D .\target\armv7a-none-eabi\release\led
 ```
+
+We can see the **memory layout**:
+```c
+target/armv7a-none-eabi/release/led:     file format elf32-littlearm
+
+Disassembly of section .text:
+
+00008000 <_start>:
+    8000:       eafffffe        b       8000 <_start>
+
+Disassembly of section .ARM.exidx:
+[ ... ]
+
+Disassembly of section .ARM.attributes:
+[ ... ]
+
+Disassembly of section .comment:
+[ ... ]
+```
+
 
 # Sources
 
