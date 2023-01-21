@@ -103,6 +103,11 @@ target = "armv7a-none-eabi"
 - `none` : This means we're not using any underlying Operating system
 - `eabi` : Means we're using the extended [ABI](https://fr.wikipedia.org/wiki/Application_binary_interface#:~:text=En%20informatique%2C%20une%20Application%20Binary,diff%C3%A9rentes%20parties%20d'une%20application.)
 
+We'll probably need to install the target architecture:
+```bash
+rustup target add armv7a-none-eabi
+```
+
 
 ## Change the main
 The current main uses the `std` library which is not available for our target architecture. We'll need to change it.
@@ -141,6 +146,55 @@ We can now compile the code:
 ```bash
 cargo build --release
 ```
+
+
+We can see the output executable in the Executable and Linkable (ELF) format:
+```c
+readelf.exe -a .\target\armv7a-none-eabi\release\led
+ELF Header:
+  Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00 
+  Class:                             ELF32
+  Data:                              2's complement, little endian
+  Version:                           1 (current)
+  OS/ABI:                            UNIX - System V
+  ABI Version:                       0
+  Type:                              EXEC (Executable file)
+  Machine:                           ARM
+  Version:                           0x1
+  Entry point address:               0x200e4
+  Start of program headers:          52 (bytes into file)
+  Start of section headers:          472 (bytes into file)
+  Flags:                             0x5000200, Version5 EABI, soft-float ABI
+  Size of this header:               52 (bytes)
+  Size of program headers:           32 (bytes)
+  Number of program headers:         5
+  Size of section headers:           40 (bytes)
+  Number of section headers:         8
+  Section header string table index: 6
+[ ... ]
+No version information found in this file.
+Attribute Section: aeabi
+File Attributes
+  Tag_conformance: "2.09"
+  Tag_CPU_arch: v7
+  Tag_CPU_arch_profile: Application
+  Tag_ARM_ISA_use: Yes
+  Tag_THUMB_ISA_use: Thumb-2
+  Tag_FP_arch: VFPv3
+  Tag_ABI_PCS_R9_use: V6
+  Tag_ABI_PCS_GOT_use: direct
+  Tag_ABI_FP_denormal: Needed
+  Tag_ABI_FP_exceptions: Unused
+  Tag_ABI_FP_number_model: IEEE 754
+  Tag_ABI_align_needed: 8-byte
+  Tag_ABI_align_preserved: 8-byte, except leaf SP
+  Tag_ABI_optimization_goals: Aggressive Speed
+  Tag_CPU_unaligned_access: None
+  Tag_ABI_FP_16bit_format: IEEE 754
+```
+
+
+
 
 # Sources
 
