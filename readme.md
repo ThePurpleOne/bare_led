@@ -1,10 +1,10 @@
----
-title: "Rust bare metal LED driver"
-author: "Jonas S."
-date: 19/01/23
----
-
-- [Rust bare metal LED driver\*\*](#rust-bare-metal-led-driver)
+- [Rust bare metal LED driver](#rust-bare-metal-led-driver)
+- [TLDR](#tldr)
+	- [Compile code into ELF:](#compile-code-into-elf)
+	- [Flatten into binary](#flatten-into-binary)
+	- [Flash the SD](#flash-the-sd)
+	- [Connect](#connect)
+	- [Enjoy the blink](#enjoy-the-blink)
 - [Hardware setup](#hardware-setup)
 	- [The board](#the-board)
 	- [The Processor](#the-processor)
@@ -33,8 +33,28 @@ date: 19/01/23
 - [Images](#images)
 
 
-# Rust bare metal LED driver**
+# Rust bare metal LED driver
 I want to code, compile, and run bare metal code on a raspberry Pi in Rust and blink an LED.
+
+# TLDR
+## Compile code into ELF: 
+```bash
+cargo build --target
+```
+
+## Flatten into binary
+```bash
+arm-none-eabi-objcopy -O binary ./target/armv7a-none-eabi/release/led ./kernel.img
+```
+
+## Flash the SD
+Load files into FAT32 formated SD card [From this directory](./to_push/) and the kernel.img.
+
+## Connect
+Connect an LED on GPIO 2 (PIN 3).
+
+## Enjoy the blink
+![./docs/images/BLINK.webp](./docs/images/BLINK.webp)
 
 # Hardware setup
 ## The board
@@ -336,7 +356,7 @@ Disassembly of section .comment:
 ## Flattening the binary
 The current binary is in ELF format and we need to flatten it to a raw binary. We can do that with `objcopy` (Included in the `arm-none-eabi` toolchain talked about earlier):
 ```bash
-arm-none-eabi-objcopy -O binary .\target\armv7a-none-eabi\release\led ./image.bin
+arm-none-eabi-objcopy -O binary ./target/armv7a-none-eabi/release/led ./kernel.img
 ```
 
 ## Loading the binary into SD card
@@ -442,7 +462,7 @@ We need to:
 - Enjoy
 
 And voilà!
-![./docs/images/BLINK.webp](./docs/images/BLINK.webp)
+
 
 
 # Sources
