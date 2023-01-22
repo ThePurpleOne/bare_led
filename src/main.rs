@@ -7,26 +7,28 @@ use core::{panic::PanicInfo, arch::asm};
 #[link_section = ".text._start"]
 pub extern "C" fn _start() -> ! 
 {
+
+	// GPIO 2 (PIN 3)
 	unsafe
 	{
-		// Set GPIO 14 (PIN 8) as output
-		core::ptr::write_volatile(0x20200000 as *mut u32, 1 << 24);
+		// Set GPIO 2 (PIN 3) as output
+        core::ptr::write_volatile(0x3F200000 as *mut u32, 1 << 6);
 		loop 
 		{
-			// Set GPIO 14 (PIN 8) to HIGH
-			core::ptr::write_volatile(0x2020001C as *mut u32, 1 << 8);
+			// Set GPIO 2 (PIN 3) to HIGH
+			core::ptr::write_volatile(0x3F20001C as *mut u32, 1 << 2);
 			
 			// Wait
-			for _ in 0..5000 
+			for _ in 0..500000
 			{
 				asm!("nop");
 			}
-			
-			// Set GPIO 14 (PIN 8) to LOW
-			core::ptr::write_volatile(0x20200028 as *mut u32, 1 << 8);
+
+			// Set GPIO 2 (PIN 3) to LOW
+			core::ptr::write_volatile(0x3F200028 as *mut u32, 1 << 2);
 			
 			// Wait
-			for _ in 0..5000
+			for _ in 0..500000
 			{
 				asm!("nop");
 			}

@@ -38,40 +38,17 @@ I want to code, compile, and run bare metal code on a raspberry Pi in Rust and b
 
 # Hardware setup
 ## The board
-I'll be using a `Raspberry PI Zero W Rev 1.1`.
+I'll be using a `Raspberry PI 3 Model B v1.2`.
 
 ![docs/images/raspberry.jpg](docs/images/raspberry.jpg)
 
 ## The Processor
 We first need to find out what processor it's using to get the datasheet for later. We can find out on the [Raspberry PI Website](https://www.raspberrypi.com/documentation/computers/os.html)
 
-Or if you already have a linux on the board:
-
-```bash
-pi@raspberry:~ $ cat /proc/cpuinfo
-```
-
-My output was:
-```bash
-processor       : 0
-model name      : ARMv6-compatible processor rev 7 (v6l)
-BogoMIPS        : 697.95
-Features        : half thumb fastmult vfp edsp java tls
-CPU implementer : 0x41
-CPU architecture: 7
-CPU variant     : 0x0
-CPU part        : 0xb76
-CPU revision    : 7
-
-Hardware        : BCM2835
-Revision        : 9000c1
-Model           : Raspberry Pi Zero W Rev 1.1
-```
-
 
 The processor is the `Broadcom BCM2835 Arm processor`.
 
-The datasheet : [BCM2835-ARM-Peripherals.pdf](https://www.raspberrypi.org/app/uploads/2012/02/BCM2835-ARM-Peripherals.pdf)
+The datasheet : [BCM2837-ARM-Peripherals.pdf](https://cs140e.sergio.bz/docs/BCM2837-ARM-Peripherals.pdf)
 
 ## LED circuit
 We'll be attaching a random LED in series with a resistor to a Raspberry GPIO.
@@ -84,15 +61,9 @@ We can seach for the 40 pins pinout of the raspberry:
 
 [Interactive Pinout](https://pinout.xyz/)
 
-I'm gonna use the `GPIO 14` on `PIN 8` and `GPIO 1` for ``3.3v` because i want to. Here is a schematics of the small circuit we'll be using:
+I'm gonna use the `GPIO 2` on `PIN 3` and `PIN 6` for `gnd` because i want to. Here is a schematics of the small circuit we'll be using:
 
 ![docs/images/led_res_schematics.png](docs/images/led_res_schematics.png)
-
-I chose to setup the led's **anode** to 3.3v so i need to pull the pin to the ground to turn it on. I picked `220 ohm` because it's what i had and the LED drops about 2V. I should be able to draw around `6 mA` when pulling the pin to ground. It's important to setup the pin as **Open drain** too. 
-
-$$
-led\_current = 3.3 - 2 / 220 = 1.3 / 220 ~= 6 mA
-$$
 
 # Workflow setup
 
@@ -180,7 +151,7 @@ ELF Header:
   Type:                              EXEC (Executable file)
   Machine:                           ARM
   Version:                           0x1
-  Entry point address:               0x200e4
+  Entry point address:               0x3F0e4
   Start of program headers:          52 (bytes into file)
   Start of section headers:          472 (bytes into file)
   Flags:                             0x5000200, Version5 EABI, soft-float ABI
@@ -394,67 +365,71 @@ And the SD card is ready to be plugged in the Raspi.
 Now that we have a binary that can be loaded by the Raspi bootloader, we can start writing some code.
 
 ## GPIO
-We want to blink an LED so we need to control the GPIO. The GPIO is controlled by setting some values to addresses in the processor memory. For that we'll need to look at the [BCM2835 Datasheet - ARM Peripherals](https://www.raspberrypi.org/app/uploads/2012/02/BCM2835-ARM-Peripherals.pdf) documentation.
+We want to blink an LED so we need to control the GPIO. The GPIO is controlled by setting some values to addresses in the processor memory. For that we'll need to look at the [BCM2835 Datasheet - ARM Peripherals](https://cs140e.sergio.bz/docs/BCM2837-ARM-Peripherals.pdf) documentation.
 
 
 GPIO Section is at page 89 : `6. General Purpose I/O (GPIO)`
 
-We've chosen GPIO 14 (Pin 8) and we need to:
+We've chosen GPIO 2 (Pin 3) and we need to:
 - Set the GPIO Function Select 1 to output
 - Set the GPIO On and Off
 
 ### Addresses
 The peripheral addresses are not directly accessed through memory addresses, but are mapped through some stuff, this is why the datasheet says:
 
-> Physical addresses range from 0x20000000 to 0x20FFFFFF for peripherals. The bus addresses for peripherals are set up to map onto the peripheral bus address range starting at 0x7E000000. Thus a peripheral advertised here at bus address 0x7Ennnnnn is available at physical address 0x20nnnnnn.
+> Physical addresses range from 0x3F000000 to 0x3FFFFFFF for peripherals. The bus addresses for peripherals are set up to map onto the peripheral bus address range starting at 0x7E000000. Thus a peripheral advertised here at bus address 0x7Ennnnnn is available at physical address 0x3Fnnnnnn.
 
-This means that each time the datasheet says `0x7Ennnnnn` we need to set `0x20nnnnnn` as the actual address.
+This means that each time the datasheet says `0x7Ennnnnn` we need to set `0x3Fnnnnnn` as the actual address.
 
 ### GPIO Addresses
 These are the 3 addresses we'l need to use:
 ![GPIO](docs/images/datasheet_addr.png)
 
 Converted:
-- `0x2020 0000`: GPIO Function Select 0
-- `0x2020 001C`: GPIO Set 0
-- `0x2020 0028`: GPIO Clear 0
+- `0x3F20 0000`: GPIO Function Select 0
+- `0x3F20 001C`: GPIO Set 0
+- `0x3F20 0028`: GPIO Clear 0
 
 ### GPIO Function Select
 ![Fsel](docs/images/datasheet_fsel.png)
 
-The GPIO Function Select needs to be set to `001` to set the GPIO as output. We can do that by setting the 3 bits `24 to 26` to `001`:
+The GPIO Function Select needs to be set to `001` to set the GPIO as output. We can do that by setting the 3 bits `6 to 8` to `001`:
 
 ### GPIO Set and Clear
-In order to set and clear the GPIO we need to set the bit corresponding to the GPIO we want to set/clear. For GPIO 14 (Pin 8) we need to set the bit `8` to `1` in the GPIO Set and Clear registers.
+In order to set and clear the GPIO we need to set the bit corresponding to the GPIO we want to set/clear. For GPIO 2 (Pin 3) we need to set the bit `8` to `1` in the GPIO Set and Clear registers.
 
 ![Set](docs/images/datasheet_set.png)
+
 ![Clear](docs/images/datasheet_clear.png)
 
 ### Rust Code to blink the LED
 ```rust
 unsafe
 {
-	// Set GPIO 14 (PIN 8) as output
-	core::ptr::write_volatile(0x20200000 as *mut u32, 0b001 << 24);
-
+	// Set GPIO 2 (PIN 3) as output
+	core::ptr::write_volatile(0x3F200000 as *mut u32, 1 << 6);
 	loop 
 	{
-		// Set GPIO 14 (PIN 8) to HIGH
-		core::ptr::write_volatile(0x2020001C as *mut u32, 1 << 8);
-
+		// Set GPIO 2 (PIN 3) to HIGH
+		core::ptr::write_volatile(0x3F20001C as *mut u32, 1 << 2);
+		
 		// Wait
-		for _ in 0..1000000 {}
-
-		// Set GPIO 14 (PIN 8) to LOW
-		core::ptr::write_volatile(0x20200028 as *mut u32, 1 << 8);
-
+		for _ in 0..500000
+		{
+			asm!("nop");
+		}
+		
+		// Set GPIO 2 (PIN 3) to LOW
+		core::ptr::write_volatile(0x3F200028 as *mut u32, 1 << 2);
+		
 		// Wait
-		for _ in 0..1000000 {}
+		for _ in 0..500000
+		{
+			asm!("nop");
+		}
 	}
 }
-
 ```
-
 
 
 # Let's see the light!
@@ -466,7 +441,8 @@ We need to:
 - Boot the Raspi
 - Enjoy
 
-
+And voilà!
+![./docs/images/BLINK.webp](./docs/images/BLINK.webp)
 
 
 # Sources
