@@ -66,7 +66,7 @@ I'll be using a `Raspberry PI 3 Model B v1.2`.
 We first need to find out what processor it's using to get the datasheet for later. We can find out on the [Raspberry PI Website](https://www.raspberrypi.com/documentation/computers/os.html)
 
 
-The processor is the `Broadcom BCM2835 Arm processor`.
+The processor is the `Broadcom BCM2837 Arm processor`.
 
 The datasheet : [BCM2837-ARM-Peripherals.pdf](https://cs140e.sergio.bz/docs/BCM2837-ARM-Peripherals.pdf)
 

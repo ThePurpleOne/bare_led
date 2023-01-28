@@ -91,3 +91,28 @@ let chunk_nb = pin % 30;
 let fsel_nb  = pin / 10;
 let fsel_add =  GPIO_FSEL_BASE + (GPIO_REG_SIZE * fsel_reg);
 ```
+
+## Turn output on
+
+Now that the GPIO is setup, we can turn it on by setting on of the 2 GPSET registers
+
+### Registers addresses
+
+| Address     	| Function 	| Register size 	| Mode 	|
+|-------------	|----------	|---------------	|------	|
+| 0x7E20'001C 	| SET0     	| 32            	| W    	|
+| 0x7E20'0020 	| SET1     	| 32            	| W    	|
+
+
+### Address a single GPIO
+
+- SET0 register can turn GPIO 00 to 31
+- SET1 register can turn GPIO 32 to 53
+
+> writing a “0” to the field has no effect.
+
+### Example
+
+Let's say we want to turn the GPIO 32 on, we can 
+
+
