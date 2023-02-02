@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
-use core::{panic::PanicInfo, arch::asm};
 
+use core::{panic::PanicInfo, arch::asm};
 
 // DATASHEET : https://cs140e.sergio.bz/docs/BCM2837-ARM-Peripherals.pdf
 
@@ -151,8 +151,6 @@ impl GPIO
 		Self::set_pull(self.pin, self.pull);
 		self.pull = PinPullud::Neither;
 	}
-
-
 
 }
 
