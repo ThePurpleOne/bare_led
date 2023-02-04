@@ -3,7 +3,10 @@
 
 use core::{panic::PanicInfo, arch::asm};
 mod gpio;
+mod uart;
+mod ptr;
 use gpio::{PinMode, Pull, GPIO};
+use uart::{UART};
 
 pub fn wait(nb: u32)
 {
@@ -21,15 +24,16 @@ pub fn wait(nb: u32)
 pub extern "C" fn _start() -> ! 
 {
 	let mut gpio2 = GPIO::new(2, PinMode::Output, Pull::Neither);
-	let mut gpio3 = GPIO::new(3, PinMode::Output, Pull::Neither);
+	//let uart = UART::new(115200);
+	
 	loop 
 	{
-		gpio3.off();
 		gpio2.on();
-		wait(500000);
-		gpio3.on();
+		//uart.send('t');
+		wait(250000);
 		gpio2.off();
-		wait(500000);
+		//uart.send('f');
+		wait(250000);
 	}
 }
 

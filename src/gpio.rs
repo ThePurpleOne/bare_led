@@ -1,4 +1,5 @@
 use core::{arch::asm};
+use crate::ptr;
 
 
 // DATASHEET : https://cs140e.sergio.bz/docs/BCM2837-ARM-Peripherals.pdf
@@ -75,19 +76,14 @@ impl GPIO
 
 		// Read the old value to avoid changing it
 		let mut val : u32;
-		unsafe
-		{
-			val = core::ptr::read_volatile(fsel_add as *mut u32);
-		}
+
+		val = ptr::read(fsel_add);
 
 		val &= !(0b111 << (chunk_nb * GPIO_CHUNK_SIZE)); 		// Clear the 3 bits
 		val |= (mode as u32) << (chunk_nb * GPIO_CHUNK_SIZE);	// Set them 
 
 		// Write it back
-		unsafe
-		{
-			core::ptr::write_volatile(fsel_add as *mut u32, val);
-		}
+		ptr::write(fsel_add, val);
 	}
 
 	fn delay_ticks(ticks: u32)
@@ -104,36 +100,30 @@ impl GPIO
 	{
 		// ! SETUP THE GPIO PULL
 		// Set the PULL MODE
-		unsafe{	core::ptr::write_volatile(GPIO_UD_BASE as *mut u32, pull as u32);}
+		ptr::write(GPIO_UD_BASE, pull as u32);
 		Self::delay_ticks(150);
 		
 		// Clock the PULL MODE on the pin
 		let add_upclk = GPIO_UDCLK_BASE + (GPIO_REG_SIZE * (pin / 32));
-		unsafe{core::ptr::write_volatile(add_upclk as *mut u32, 1 << (pin % 32));}
+		ptr::write(add_upclk, 1 << (pin % 32));
 		Self::delay_ticks(150);
 		
 		// Clear both registers
-		unsafe{	core::ptr::write_volatile(GPIO_UD_BASE as *mut u32, 0 as u32);}
-		unsafe{	core::ptr::write_volatile(add_upclk as *mut u32, 0 as u32);}
+		ptr::write(GPIO_UD_BASE, 0 as u32);
+		ptr::write(add_upclk, 0 as u32);
 	}
 
 	pub fn on(&mut self)
 	{
 		let reg_addr = GPIO_SET_BASE + (GPIO_REG_SIZE * self.pin / 32);
-		unsafe
-		{
-			core::ptr::write_volatile(reg_addr as *mut u32, 1 << (self.pin % 32));
-		}
+		ptr::write(reg_addr, 1 << (self.pin % 32));
 		self.state = PinState::ON;
 	}
 	
 	pub fn off(&mut self)
 	{
 		let reg_addr = GPIO_CLR_BASE + (GPIO_REG_SIZE * (self.pin / 32));
-		unsafe
-		{
-			core::ptr::write_volatile(reg_addr as *mut u32, 1 << (self.pin % 32));
-		}
+		ptr::write(reg_addr, 1 << (self.pin % 32));
 		self.state = PinState::OFF;
 	}
 

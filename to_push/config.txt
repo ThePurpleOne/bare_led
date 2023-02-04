@@ -1,1 +1,2 @@
 BOOT_UART=1
+enable_uart=1
