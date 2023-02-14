@@ -95,7 +95,7 @@ For example if i chose the GPIO 32, i'll have:
 
 ```bash
 fsel_number = 32 / 10 = 3
-chunk_number = 32 mod 30 = 2
+chunk_number = 32 mod 10 = 2
 ```
 
 We thus need to address the FSEL3 and set the bits of the 2nd chunks.
@@ -109,9 +109,9 @@ pub fn new(pin : u32, mode : PinMode) -> Self
 {
 	if pin > 53 {panic!("Undefined pin number")};
 
-	let chunk_nb = pin % 30; // 2 % 30 = 2
+	let chunk_nb = pin % 10; // (10 is the number of chunks)
 	let fsel_nb  = pin / 10; // 2 / 10 = 0
-	// 
+
 	let fsel_add =  GPIO_FSEL_BASE + (GPIO_REG_SIZE * fsel_nb);
 
 	// Read the old value to avoid changing it

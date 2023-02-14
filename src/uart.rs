@@ -37,9 +37,9 @@ impl UART {
     // no parities
     pub fn new(baudrate: u32) -> Self {
         // Enable UART
-        // let mut val = ptr::read(UART_AUXEN);
-        // val |= 1;
-        ptr::write(UART_AUXEN, 1);
+        let mut val = ptr::read(UART_AUXEN);
+        val |= 1;
+        ptr::write(UART_AUXEN, val);
 
         // Disable transmiting and receiving to setup (p.16)
         ptr::write(UART_CNTL, 0);
@@ -86,11 +86,10 @@ impl UART {
         let mut val: u32;
         loop {
             val = ptr::read(UART_LSR);
-            if val & 1 == 0 {
+            if (val & 1) != 0 {
                 break;
             }
         }
-        ptr::read(UART_LSR);
-        val as u8 as char
+        ptr::read(UART_IO) as u8 as char
     }
 }

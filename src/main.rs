@@ -19,16 +19,18 @@ pub fn wait(nb: u32) {
 #[no_mangle]
 #[link_section = ".text._start"]
 pub extern "C" fn _start() -> ! {
-    let mut gpio2 = GPIO::new(2, PinMode::Output, Pull::Neither);
+    // let mut gpio2 = GPIO::new(2, PinMode::Output, Pull::Neither);
     let uart = UART::new(115200);
 
     loop {
-        gpio2.on();
-        uart.send('t');
-        wait(250000);
-        gpio2.off();
+        // gpio2.on();
+        let char = uart.read();
+        uart.send(char);
+
+        // wait(250000);
+        // gpio2.off();
         //uart.send('f');
-        wait(250000);
+        // wait(250000);
     }
 }
 
