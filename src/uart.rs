@@ -16,12 +16,13 @@ const UART_LCR: u32 = 0x3F21_504C; // Mini Uart Line Control
 const UART_MCR: u32 = 0x3F21_5050; // Mini Uart Modem Control
 const UART_LSR: u32 = 0x3F21_5054; // Mini Uart Line Status
 const _UART_MSR: u32 = 0x3F21_5058; // Mini Uart Modem Status
-const _UART_SCRATCH: u32 = 0x3F21_505C; // Mini Uart Scratch
+                                    // const _UART_SCRATCH: u32 = 0x3F21_505C; // Mini Uart Scratch
 const UART_CNTL: u32 = 0x3F21_5060; // Mini Uart Extra Control
 const _UART_STAT: u32 = 0x3F21_5064; // Mini Uart Extra Status
 const UART_BAUD: u32 = 0x3F21_5068; // Mini Uart Baudrate
 
 #[allow(dead_code)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct UART {
     baudrate: u32,
     rx: GPIO,
@@ -38,7 +39,7 @@ impl UART {
         // Enable UART
         // let mut val = ptr::read(UART_AUXEN);
         // val |= 1;
-        ptr::write(UART_AUXEN, 0);
+        ptr::write(UART_AUXEN, 1);
 
         // Disable transmiting and receiving to setup (p.16)
         ptr::write(UART_CNTL, 0);
@@ -59,6 +60,8 @@ impl UART {
         let rx = GPIO::new(UART_RX, PinMode::AltFunc5, Pull::Neither);
         let uart = UART { baudrate, rx, tx };
 
+        // ALTFC5 FOR GPIO 14 and GPIO 15
+
         // RE-Enable transmiting and receiving (p.16)
         ptr::write(UART_CNTL, 0b11);
 
@@ -77,6 +80,7 @@ impl UART {
 
         ptr::write(UART_IO, data as u32);
     }
+
     pub fn read(&self) -> char {
         // Wait for data (p.15)
         let mut val: u32;

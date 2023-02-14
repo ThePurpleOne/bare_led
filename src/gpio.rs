@@ -5,6 +5,7 @@ use core::arch::asm;
 
 const GPIO_REG_SIZE: u32 = 4; // Bytes
 const GPIO_CHUNK_SIZE: u32 = 3; // bits
+const GPIO_CHUNK_NB: u32 = 10; // chunks
 
 const GPIO_FSEL_BASE: u32 = 0x3F20_0000;
 const GPIO_SET_BASE: u32 = 0x3F20_001C;
@@ -43,7 +44,7 @@ pub enum Pull {
 }
 
 #[allow(dead_code)]
-#[warn(clippy::upper_case_acronyms)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct GPIO {
     pin: u32,
     mode: PinMode,
@@ -67,7 +68,7 @@ impl GPIO {
 
     fn set_mode(pin: u32, mode: PinMode) {
         // ! SETUP THE GPIO MODE
-        let chunk_nb = pin % 30;
+        let chunk_nb = pin % GPIO_CHUNK_NB;
         let fsel_add = GPIO_FSEL_BASE + (GPIO_REG_SIZE * (pin / 10));
 
         // Read the old value to avoid changing it
