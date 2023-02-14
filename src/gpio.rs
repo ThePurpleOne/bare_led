@@ -35,9 +35,8 @@ enum PinState {
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 #[allow(dead_code)]
-pub enum Pull
 // Pull up/Down p.101
-{
+pub enum Pull {
     Neither = 0,
     PullUp,
     PullDown,

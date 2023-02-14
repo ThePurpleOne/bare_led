@@ -30,47 +30,39 @@ pub struct UART {
 
 #[allow(dead_code)]
 impl UART {
-    pub fn new(baudrate: u32) -> Self {
-        let tx = GPIO::new(UART_TX, PinMode::AltFunc5, Pull::Neither);
-        let rx = GPIO::new(UART_RX, PinMode::AltFunc5, Pull::Neither);
-        let uart = UART { baudrate, rx, tx };
-
-        Self::set_baudrate(baudrate);
-        Self::setup();
-
-        uart
-    }
-
     // Setup the UART (HARD CODED FOR NOW)
     // 8 bits data
     // 1 stop bit
     // no parities
-    fn setup() {
+    pub fn new(baudrate: u32) -> Self {
+        // Enable UART
+        // let mut val = ptr::read(UART_AUXEN);
+        // val |= 1;
+        ptr::write(UART_AUXEN, 0);
+
         // Disable transmiting and receiving to setup (p.16)
         ptr::write(UART_CNTL, 0);
 
         // Enable transmit and receive interrupts (p.12)
-        ptr::write(UART_IER, 0);
+        // ptr::write(UART_IER, 0);
 
         // 8 bits mode (p.14)
         ptr::write(UART_LCR, 0b11);
 
         // No Ready To Send (p.14)
-        ptr::write(UART_MCR, 0);
+        // ptr::write(UART_MCR, 0);
 
-        // Enable UART
-        let mut val = ptr::read(UART_AUXEN);
-        val |= 1;
-        ptr::write(UART_AUXEN, val);
+        // Baudrate to 115200 @250Mhz (p.14)
+        ptr::write(UART_BAUD, (250_000_000 / (8 * 115200)) - 1);
+
+        let tx = GPIO::new(UART_TX, PinMode::AltFunc5, Pull::Neither);
+        let rx = GPIO::new(UART_RX, PinMode::AltFunc5, Pull::Neither);
+        let uart = UART { baudrate, rx, tx };
 
         // RE-Enable transmiting and receiving (p.16)
         ptr::write(UART_CNTL, 0b11);
-    }
 
-    // Set the Baudrate, Hard coded for now...
-    fn set_baudrate(_baudrate: u32) {
-        // Baudrate to 115200 @250Mhz (p.14)
-        ptr::write(UART_BAUD, 270);
+        uart
     }
 
     pub fn send(&self, data: char) {
@@ -83,12 +75,7 @@ impl UART {
             }
         }
 
-        // Give data to send
-        let mut gpio3 = GPIO::new(3, PinMode::Output, Pull::Neither);
-        gpio3.on();
-
         ptr::write(UART_IO, data as u32);
-        gpio3.off();
     }
     pub fn read(&self) -> char {
         // Wait for data (p.15)
