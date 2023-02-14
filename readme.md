@@ -11,5 +11,5 @@ arm-none-eabi-objcopy -O binary ./target/armv7a-none-eabi/release/led ./kernel.i
 ```
 
 ## Sources
-(Sourceware : Linker script explanation)[https://sourceware.org/binutils/docs/ld/Scripts.html#Scripts]
+[Sourceware : Linker script explanation](https://sourceware.org/binutils/docs/ld/Scripts.html#Scripts)
 
