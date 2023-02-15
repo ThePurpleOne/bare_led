@@ -3,10 +3,10 @@
 
 use core::{arch::asm, panic::PanicInfo};
 mod gpio;
+mod miniuart;
 mod ptr;
-mod uart;
-use gpio::{PinMode, Pull, GPIO};
-use uart::UART;
+// use gpio::{PinMode, Pull, GPIO};
+use miniuart::Miniuart;
 
 pub fn wait(nb: u32) {
     for _ in 0..nb {
@@ -20,12 +20,13 @@ pub fn wait(nb: u32) {
 #[link_section = ".text._start"]
 pub extern "C" fn _start() -> ! {
     // let mut gpio2 = GPIO::new(2, PinMode::Output, Pull::Neither);
-    let uart = UART::new(115200);
+    let muart = Miniuart::new(115200);
 
     loop {
         // gpio2.on();
-        let char = uart.read();
-        uart.send(char);
+        let char = muart.readc();
+        muart.send_str("Read : ");
+        muart.sendc(char);
 
         // wait(250000);
         // gpio2.off();
