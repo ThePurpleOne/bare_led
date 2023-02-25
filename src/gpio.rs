@@ -1,21 +1,23 @@
 use crate::ptr;
 use core::arch::asm;
+use ptr::BASE_MMIO;
 
 // DATASHEET : https://cs140e.sergio.bz/docs/BCM2837-ARM-Peripherals.pdf
 
-const GPIO_REG_SIZE: u32 = 4; // Bytes
-const GPIO_CHUNK_SIZE: u32 = 3; // bits
-const GPIO_CHUNK_NB: u32 = 10; // chunks
+const GPIO_REG_SIZE : u32 = 4; // Bytes
+const GPIO_CHUNK_SIZE : u32 = 3; // bits
+const GPIO_CHUNK_NB : u32 = 10; // chunks
 
-const GPIO_FSEL_BASE: u32 = 0x3F20_0000;
-const GPIO_SET_BASE: u32 = 0x3F20_001C;
-const GPIO_CLR_BASE: u32 = 0x3F20_0028;
-const GPIO_UD_BASE: u32 = 0x3F20_0094;
-const GPIO_UDCLK_BASE: u32 = 0x3F20_0098;
+const GPIO_FSEL_BASE : u32 = BASE_MMIO + 0x0020_0000;
+const GPIO_SET_BASE : u32 = BASE_MMIO + 0x0020_001C;
+const GPIO_CLR_BASE : u32 = BASE_MMIO + 0x0020_0028;
+const GPIO_UD_BASE : u32 = BASE_MMIO + 0x0020_0094;
+const GPIO_UDCLK_BASE : u32 = BASE_MMIO + 0x0020_0098;
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 #[allow(dead_code)]
-pub enum PinMode {
+pub enum PinMode
+{
     // Datasheet p.92
     Input = 0b000,
     Output,
@@ -29,7 +31,8 @@ pub enum PinMode {
 
 #[derive(PartialEq, Eq)]
 #[allow(dead_code)]
-enum PinState {
+enum PinState
+{
     On,
     Off,
 }
@@ -37,7 +40,8 @@ enum PinState {
 #[derive(PartialEq, Eq, Clone, Copy)]
 #[allow(dead_code)]
 // Pull up/Down p.101
-pub enum Pull {
+pub enum Pull
+{
     Neither = 0,
     PullUp,
     PullDown,
@@ -45,34 +49,36 @@ pub enum Pull {
 
 #[allow(dead_code)]
 #[allow(clippy::upper_case_acronyms)]
-pub struct GPIO {
-    pin: u32,
-    mode: PinMode,
-    state: PinState,
-    pull: Pull,
+pub struct GPIO
+{
+    pin :   u32,
+    mode :  PinMode,
+    state : PinState,
+    pull :  Pull,
 }
 
 #[allow(dead_code)]
-impl GPIO {
-    pub fn new(pin: u32, mode: PinMode, pull: Pull) -> Self {
+impl GPIO
+{
+    pub fn new(pin : u32, mode : PinMode, pull : Pull) -> Self
+    {
         Self::set_mode(pin, mode);
         Self::set_pull(pin, pull);
 
-        GPIO {
-            pin,
-            mode,
-            state: PinState::Off,
-            pull,
-        }
+        GPIO { pin,
+               mode,
+               state : PinState::Off,
+               pull }
     }
 
-    fn set_mode(pin: u32, mode: PinMode) {
+    fn set_mode(pin : u32, mode : PinMode)
+    {
         // ! SETUP THE GPIO MODE
         let chunk_nb = pin % GPIO_CHUNK_NB;
         let fsel_add = GPIO_FSEL_BASE + (GPIO_REG_SIZE * (pin / 10));
 
         // Read the old value to avoid changing it
-        let mut val: u32;
+        let mut val : u32;
 
         val = ptr::read(fsel_add);
 
@@ -83,15 +89,18 @@ impl GPIO {
         ptr::write(fsel_add, val);
     }
 
-    fn delay_ticks(ticks: u32) {
-        for _ in 0..ticks {
+    fn delay_ticks(ticks : u32)
+    {
+        for _ in 0..ticks
+        {
             unsafe {
                 asm!("nop");
             }
         }
     }
 
-    fn set_pull(pin: u32, pull: Pull) {
+    fn set_pull(pin : u32, pull : Pull)
+    {
         // ! SETUP THE GPIO PULL
         // Set the PULL MODE
         ptr::write(GPIO_UD_BASE, pull as u32);
@@ -107,29 +116,34 @@ impl GPIO {
         ptr::write(add_upclk, 0);
     }
 
-    pub fn on(&mut self) {
+    pub fn on(&mut self)
+    {
         let reg_addr = GPIO_SET_BASE + (GPIO_REG_SIZE * self.pin / 32);
         ptr::write(reg_addr, 1 << (self.pin % 32));
         self.state = PinState::On;
     }
 
-    pub fn off(&mut self) {
+    pub fn off(&mut self)
+    {
         let reg_addr = GPIO_CLR_BASE + (GPIO_REG_SIZE * (self.pin / 32));
         ptr::write(reg_addr, 1 << (self.pin % 32));
         self.state = PinState::Off;
     }
 
-    pub fn pull_down(&mut self) {
+    pub fn pull_down(&mut self)
+    {
         self.pull = Pull::PullDown;
         Self::set_pull(self.pin, self.pull);
     }
 
-    pub fn pull_up(&mut self) {
+    pub fn pull_up(&mut self)
+    {
         Self::set_pull(self.pin, self.pull);
         self.pull = Pull::PullUp;
     }
 
-    pub fn pull_neither(&mut self) {
+    pub fn pull_neither(&mut self)
+    {
         Self::set_pull(self.pin, self.pull);
         self.pull = Pull::Neither;
     }

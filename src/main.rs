@@ -8,8 +8,10 @@ mod ptr;
 // use gpio::{PinMode, Pull, GPIO};
 use miniuart::Miniuart;
 
-pub fn wait(nb: u32) {
-    for _ in 0..nb {
+pub fn wait(nb : u32)
+{
+    for _ in 0..nb
+    {
         unsafe {
             asm!("nop");
         }
@@ -18,15 +20,26 @@ pub fn wait(nb: u32) {
 
 #[no_mangle]
 #[link_section = ".text._start"]
-pub extern "C" fn _start() -> ! {
+pub extern "C" fn _start() -> !
+{
     // let mut gpio2 = GPIO::new(2, PinMode::Output, Pull::Neither);
     let muart = Miniuart::new(115200);
 
-    loop {
+	muart.send_str("-------------------------------------\n");
+	muart.send_str("Welcome to BMRP (Bare metal RASPI) !!\n");
+	muart.send_str("-------------------------------------\n");
+
+    loop
+    {
         // gpio2.on();
-        let char = muart.readc();
-        muart.send_str("Read : ");
-        muart.sendc(char);
+        muart.send_str("\r\n>");
+		
+		let mut data = muart.readc();
+		while data != '\n'
+		{
+			muart.sendc(data);
+        	data = muart.readc();
+		}
 
         // wait(250000);
         // gpio2.off();
@@ -37,6 +50,8 @@ pub extern "C" fn _start() -> ! {
 
 // This function is called on panic.
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
+fn panic(_info : &PanicInfo) -> !
+{
+    loop
+    {}
 }
