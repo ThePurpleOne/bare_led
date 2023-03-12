@@ -25,9 +25,9 @@ pub extern "C" fn _start() -> !
     // let mut gpio2 = GPIO::new(2, PinMode::Output, Pull::Neither);
     let muart = Miniuart::new(115200);
 
-	muart.send_str("-------------------------------------\n");
-	muart.send_str("Welcome to BMRP (Bare metal RASPI) !!\n");
-	muart.send_str("-------------------------------------\n");
+	muart.send_str("-------------------------------------\r\n");
+	muart.send_str("Welcome to BMRP (Bare metal RASPI) !!\r\n");
+	muart.send_str("-------------------------------------\r\n");
 
     loop
     {

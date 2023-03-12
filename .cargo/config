@@ -1,4 +1,5 @@
-[build]
-target = "armv7a-none-eabi"
+# [build]
+# target = "armv7a-none-eabi"
+# target = "aarch64-unknown-none"
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
 rustflags = ["-C", "link-arg=--script=linker.ld",]
