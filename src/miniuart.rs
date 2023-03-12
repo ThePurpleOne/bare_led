@@ -94,10 +94,10 @@ impl Miniuart
     {
         for char in data.chars()
         {
-            if char == '\n'
-            {
-                self.sendc('\r');
-            }
+            //if char == '\n'
+            //{
+            //    self.sendc('\r');
+            //}
             self.sendc(char);
         }
     }

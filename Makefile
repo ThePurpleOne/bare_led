@@ -15,4 +15,4 @@ hardware:
 # Compile and run in qemu
 sim:
 	cargo build --release --target=$(TOOLCHAIN_SIM)
-	qemu-system-aarch64 -M raspi3b -serial vc -serial vc -kernel ./target/$(TOOLCHAIN_SIM)/release/led
+	qemu-system-aarch64 -M raspi3b -serial vc -serial stdio -kernel ./target/$(TOOLCHAIN_SIM)/release/led
