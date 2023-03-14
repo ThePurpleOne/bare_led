@@ -4,16 +4,6 @@ use ptr::BASE_MMIO;
 
 // DATASHEET : https://cs140e.sergio.bz/docs/BCM2837-ARM-Peripherals.pdf
 
-const GPIO_REG_SIZE : u32 = 4; // Bytes
-const GPIO_CHUNK_SIZE : u32 = 3; // bits
-const GPIO_CHUNK_NB : u32 = 10; // chunks
-
-const GPIO_FSEL_BASE : u32 = BASE_MMIO + 0x0020_0000;
-const GPIO_SET_BASE : u32 = BASE_MMIO + 0x0020_001C;
-const GPIO_CLR_BASE : u32 = BASE_MMIO + 0x0020_0028;
-const GPIO_UD_BASE : u32 = BASE_MMIO + 0x0020_0094;
-const GPIO_UDCLK_BASE : u32 = BASE_MMIO + 0x0020_0098;
-
 #[derive(PartialEq, Eq, Clone, Copy)]
 #[allow(dead_code)]
 pub enum PinMode
@@ -60,6 +50,16 @@ pub struct GPIO
 #[allow(dead_code)]
 impl GPIO
 {
+	const REG_SIZE 			: u32 = 4; // Bytes
+	const CHUNK_SIZE 	: u32 = 3; // bits
+	const CHUNK_NB 	: u32 = 10; // chunks
+
+	const FSEL_BASE 	: u32 = BASE_MMIO + 0x0020_0000;
+	const SET_BASE 	: u32 = BASE_MMIO + 0x0020_001C;
+	const CLR_BASE 	: u32 = BASE_MMIO + 0x0020_0028;
+	const UD_BASE 		: u32 = BASE_MMIO + 0x0020_0094;
+	const UDCLK_BASE 	: u32 = BASE_MMIO + 0x0020_0098;
+
     pub fn new(pin : u32, mode : PinMode, pull : Pull) -> Self
     {
         Self::set_mode(pin, mode);
@@ -74,16 +74,16 @@ impl GPIO
     fn set_mode(pin : u32, mode : PinMode)
     {
         // ! SETUP THE GPIO MODE
-        let chunk_nb = pin % GPIO_CHUNK_NB;
-        let fsel_add = GPIO_FSEL_BASE + (GPIO_REG_SIZE * (pin / 10));
+        let chunk_nb = pin % Self::CHUNK_NB;
+        let fsel_add = Self::FSEL_BASE + (Self::REG_SIZE * (pin / 10));
 
         // Read the old value to avoid changing it
         let mut val : u32;
 
         val = ptr::read(fsel_add);
 
-        val &= !(0b111 << (chunk_nb * GPIO_CHUNK_SIZE)); // Clear the 3 bits
-        val |= (mode as u32) << (chunk_nb * GPIO_CHUNK_SIZE); // Set them
+        val &= !(0b111 << (chunk_nb * Self::CHUNK_SIZE)); // Clear the 3 bits
+        val |= (mode as u32) << (chunk_nb * Self::CHUNK_SIZE); // Set them
 
         // Write it back
         ptr::write(fsel_add, val);
@@ -103,29 +103,29 @@ impl GPIO
     {
         // ! SETUP THE GPIO PULL
         // Set the PULL MODE
-        ptr::write(GPIO_UD_BASE, pull as u32);
+        ptr::write(Self::UD_BASE, pull as u32);
         Self::delay_ticks(150);
 
         // Clock the PULL MODE on the pin
-        let add_upclk = GPIO_UDCLK_BASE + (GPIO_REG_SIZE * (pin / 32));
+        let add_upclk = Self::UDCLK_BASE + (Self::REG_SIZE * (pin / 32));
         ptr::write(add_upclk, 1 << (pin % 32));
         Self::delay_ticks(150);
 
         // Clear both registers
-        ptr::write(GPIO_UD_BASE, 0);
+        ptr::write(Self::UD_BASE, 0);
         ptr::write(add_upclk, 0);
     }
 
     pub fn on(&mut self)
     {
-        let reg_addr = GPIO_SET_BASE + (GPIO_REG_SIZE * self.pin / 32);
+        let reg_addr = Self::SET_BASE + (Self::REG_SIZE * self.pin / 32);
         ptr::write(reg_addr, 1 << (self.pin % 32));
         self.state = PinState::On;
     }
 
     pub fn off(&mut self)
     {
-        let reg_addr = GPIO_CLR_BASE + (GPIO_REG_SIZE * (self.pin / 32));
+        let reg_addr = Self::CLR_BASE + (Self::REG_SIZE * (self.pin / 32));
         ptr::write(reg_addr, 1 << (self.pin % 32));
         self.state = PinState::Off;
     }
